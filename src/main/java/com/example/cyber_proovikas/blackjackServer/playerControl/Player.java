@@ -14,5 +14,6 @@ public class Player {
     @Id
     String username;
 
+    int game;
     BigDecimal funds;
 }

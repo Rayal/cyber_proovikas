@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 public interface PlayerController extends JpaRepository<Player, String>{
     @Modifying
     @Transactional
-    @Query(value = "insert into Player (username) values (:username)", nativeQuery = true)
+    @Query(value = "insert into Player (username, game) values (:username, -1)", nativeQuery = true)
     void addPlayer(@Param("username") String username);
 
     @Query("select p from Player p where p.username = :username")
@@ -26,4 +26,12 @@ public interface PlayerController extends JpaRepository<Player, String>{
 
     @Query("select p.funds from Player p where p.username = :username")
     BigDecimal getFundsByUsername(@Param("username") String username);
+
+    @Query("select p.game from Player p where p.username = :username")
+    int getGameByUsername(@Param("username") String username);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE Player p set p.game = :game where p.username = :username", nativeQuery = true)
+    void setGameByUsername(@Param("username") String username,@Param("game") int game);
 }

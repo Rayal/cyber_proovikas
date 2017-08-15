@@ -19,20 +19,23 @@ public class PlayerControllerTest {
     @Autowired
     private PlayerController playerController;
 
+    String username = "username";
+
     @Test
     public void createPlayerTest()
     {
-        playerController.addPlayer("username");
-        Player player = playerController.getPlayerByUsername("username");
+        playerController.addPlayer(username);
+        Player player = playerController.getPlayerByUsername(username);
 
-        assertThat(player.getUsername().equals("username"));
+        assertThat(player.getUsername().equals(username));
+        assertThat(player.getGame() == -1);
     }
 
     @Test
     public void addFundsTest()
     {
-        playerController.setFundsByUsername("username", new BigDecimal(100));
-        Player player = playerController.getPlayerByUsername("username");
+        playerController.setFundsByUsername(username, new BigDecimal(100));
+        Player player = playerController.getPlayerByUsername(username);
 
         assertThat(player.getFunds().equals(100));
     }
@@ -41,5 +44,16 @@ public class PlayerControllerTest {
     public void checkFundsTest()
     {
         assertThat(playerController.getFundsByUsername("username").equals(100));
+    }
+
+    @Test
+    public void getSetRunningGameIdTest()
+    {
+        playerController.setGameByUsername(username, 1);
+        int game = playerController.getGameByUsername(username);
+        Player player = playerController.getPlayerByUsername(username);
+
+        assertThat(player.getGame() == 1);
+        assertThat(game == player.getGame());
     }
 }
