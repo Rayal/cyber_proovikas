@@ -33,5 +33,5 @@ public interface PlayerController extends JpaRepository<Player, String>{
     @Modifying
     @Transactional
     @Query(value = "UPDATE Player p set p.game = :game where p.username = :username", nativeQuery = true)
-    void setGameByUsername(@Param("username") String username,@Param("game") int game);
+    void setGameByUsername(@Param("username") String username,@Param("game") long game);
 }

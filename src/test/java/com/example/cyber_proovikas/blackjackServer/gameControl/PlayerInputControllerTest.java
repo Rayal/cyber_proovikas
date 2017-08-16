@@ -17,6 +17,7 @@ import org.springframework.web.context.WebApplicationContext;
 import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -81,13 +82,15 @@ public class PlayerInputControllerTest
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request));
 
-        mockMvc.perform(get("/game"))
+        mockMvc.perform(put("/game"))
                 .andExpect(status().isBadRequest());
 
-        mockMvc.perform(get("/game")
+        mockMvc.perform(put("/game")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gameId").exists());
+                .andExpect(jsonPath("$.gameId").exists())
+                .andExpect(jsonPath("$.playerHand").isNotEmpty())
+                .andExpect(jsonPath("$.dealerHand").isNotEmpty());
     }
 }

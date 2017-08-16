@@ -42,7 +42,7 @@ public class HandControllerTest
         long card = 12;
         handController.insertCardToHand(owner, card, gameId);
 
-        List<Long> hand = handController.getCardsbyOwner(owner);
+        List<Long> hand = handController.getCardsbyOwner(owner, gameId);
 
         assertThat(hand.contains(card));
     }
@@ -53,9 +53,9 @@ public class HandControllerTest
         long card = 13;
         handController.insertCardToHand("deck", card, gameId);
 
-        handController.moveCardToHand(owner, gameId);
+        handController.moveCardToHand(owner, card, gameId);
 
-        List<Long> hand = handController.getCardsbyOwner(owner);
+        List<Long> hand = handController.getCardsbyOwner(owner, gameId);
 
         assertThat(hand.contains(card));
     }

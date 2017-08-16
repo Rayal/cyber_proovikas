@@ -17,8 +17,8 @@ public interface HandController extends JpaRepository<Hand,Long>{
     @Query("select h.card from Hand h where h.deck = :deck")
     List<Long> getCardsbyDeck(@Param("deck") long deck);
 
-    @Query("select h.card from Hand h where h.owner = :owner")
-    List<Long> getCardsbyOwner(@Param("owner") String owner);
+    @Query("select h.card from Hand h where h.owner = :owner and h.deck = :deck")
+    List<Long> getCardsbyOwner(@Param("owner") String owner, @Param("deck") long deck);
 
     @Modifying
     @Transactional
@@ -27,8 +27,8 @@ public interface HandController extends JpaRepository<Hand,Long>{
 
     @Modifying
     @Transactional
-    @Query(value = "update Hand h set h.owner= :owner where h.deck = :gameId", nativeQuery = true)
-    void moveCardToHand(@Param("owner") String owner, @Param("gameId") long gameId);
+    @Query(value = "update Hand h set h.owner= :owner where h.card = :card and h.deck = :gameId", nativeQuery = true)
+    void moveCardToHand(@Param("owner") String owner,@Param("card") long card, @Param("gameId") long gameId);
 
     @Modifying
     @Transactional

@@ -8,6 +8,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,8 @@ public class PlayerInputController
 {
     @Autowired
     PlayerController playerController;
+    @Autowired
+    HandController handController;
 
     private Logger logger = LoggerFactory.getLogger(PlayerInputController.class);
 
@@ -61,7 +64,7 @@ public class PlayerInputController
         return new ResponseEntity(HttpStatus.CONFLICT);
     }
 
-    @RequestMapping(value = "/game", method = RequestMethod.GET)
+    @RequestMapping(value = "/game", method = RequestMethod.PUT)
     public ResponseEntity newGameRequest(@RequestBody String body)
     {
         String username = "";
@@ -90,16 +93,26 @@ public class PlayerInputController
             return new ResponseEntity(HttpStatus.FAILED_DEPENDENCY);
         }
 
-        int gameId = playerController.getGameByUsername(username);
+        long gameId = playerController.getGameByUsername(username);
 
         if (gameId == -1) {
             // Game doesn't exist, creating a new one.
-            gameId = BlackJackGameController.createNewGame();
+            gameId = BlackJackGame.newBlackJackGame(username, handController);
             playerController.setGameByUsername(username, gameId);
         }
 
-        String response = String.format("{\"gameId\": %d}", gameId);
+        JSONObject response = new JSONObject();
+        try {
+            response.accumulate("gameId", gameId);
+            response.accumulate("playerHand", handController.getCardsbyOwner(username, gameId));
+            response.accumulate("dealerHand", handController.getCardsbyOwner("dealer", gameId).get(0));
+        } catch (JSONException e) {
+            logger.error(e.toString());
+        }
 
-        return new ResponseEntity(response, HttpStatus.OK);
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(HttpHeaders.CONTENT_TYPE, "application/json");
+
+        return new ResponseEntity(response.toString(), httpHeaders, HttpStatus.OK);
     }
 }
