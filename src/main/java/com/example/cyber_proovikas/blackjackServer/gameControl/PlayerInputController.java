@@ -33,6 +33,7 @@ public class PlayerInputController
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity loginRequest(@RequestBody String body)
     {
+        // Get the username from the request body.
         String username = "";
 
         try
@@ -51,6 +52,8 @@ public class PlayerInputController
         }
 
         logger.info(String.format("Got username: %s", username));
+
+        // Next, check if there already is someone logged in with that username.
         Player player = playerController.getPlayerByUsername(username);
 
         if (player == null)
@@ -67,6 +70,7 @@ public class PlayerInputController
     @RequestMapping(value = "/game", method = RequestMethod.PUT)
     public ResponseEntity newGameRequest(@RequestBody String body)
     {
+        //First, get the username from the request body.
         String username = "";
 
         try
@@ -85,6 +89,8 @@ public class PlayerInputController
         }
 
         logger.info(String.format("Got username: %s", username));
+
+        // Next, check to see if we have such a username logged in.
         Player player = playerController.getPlayerByUsername(username);
 
         if(player == null)
@@ -93,14 +99,16 @@ public class PlayerInputController
             return new ResponseEntity(HttpStatus.FAILED_DEPENDENCY);
         }
 
+        // Check if the username has a game still running.
         long gameId = playerController.getGameByUsername(username);
 
         if (gameId == -1) {
             // Game doesn't exist, creating a new one.
-            gameId = BlackJackGame.newBlackJackGame(username, handController);
+            gameId = BlackJackGameController.newBlackJackGame(username, handController);
             playerController.setGameByUsername(username, gameId);
         }
 
+        // Putting together the JSON object with our response to the user.
         JSONObject response = new JSONObject();
         try {
             response.accumulate("gameId", gameId);
