@@ -48,6 +48,19 @@ public class HandControllerTest
     }
 
     @Test
+    public void moveCardTest()
+    {
+        long card = 13;
+        handController.insertCardToHand("deck", card, gameId);
+
+        handController.moveCardToHand(owner, gameId);
+
+        List<Long> hand = handController.getCardsbyOwner(owner);
+
+        assertThat(hand.contains(card));
+    }
+
+    @Test
     public void deleteDeckTest()
     {
         long card = 13;

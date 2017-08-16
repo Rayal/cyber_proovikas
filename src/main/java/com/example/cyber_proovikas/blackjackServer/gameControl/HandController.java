@@ -27,6 +27,11 @@ public interface HandController extends JpaRepository<Hand,Long>{
 
     @Modifying
     @Transactional
+    @Query(value = "update Hand h set h.owner= :owner where h.deck = :gameId", nativeQuery = true)
+    void moveCardToHand(@Param("owner") String owner, @Param("gameId") long gameId);
+
+    @Modifying
+    @Transactional
     @Query(value = "delete from Hand h where h.deck = :gameId")
     void cleanGameDeck(@Param("gameId") long gameId);
 }
