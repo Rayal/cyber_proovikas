@@ -1,7 +1,8 @@
-package com.example.cyber_proovikas.blackjackServer.gameControl;
+package com.example.cyber_proovikas.blackjackServer.playerControl;
 
-import com.example.cyber_proovikas.blackjackServer.playerControl.Player;
-import com.example.cyber_proovikas.blackjackServer.playerControl.PlayerController;
+import com.example.cyber_proovikas.blackjackServer.gameControl.BlackJackGameController;
+import com.example.cyber_proovikas.blackjackServer.gameControl.GameActionController;
+import com.example.cyber_proovikas.blackjackServer.gameControl.HandController;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -122,5 +123,84 @@ public class PlayerInputController
         httpHeaders.add(HttpHeaders.CONTENT_TYPE, "application/json");
 
         return new ResponseEntity(response.toString(), httpHeaders, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/game/play", method = RequestMethod.GET)
+    public ResponseEntity gameActionRequest(@RequestBody String body)
+    {
+        // Get username
+        String username = "";
+        try {
+            username = getUsernameFromRequest(body);
+        } catch (JSONException e) {
+            logger.error(e.toString());
+        }
+
+        if (username.isEmpty())
+        {
+            logger.warn("Did not get username from request body.");
+
+            String response = "{\"message\": \"username not found\"}";
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
+
+            return new ResponseEntity(response, headers, HttpStatus.BAD_REQUEST);
+        }
+
+        // Find out if user exists.
+        if(playerController.getPlayerByUsername(username) == null)
+        {
+            logger.error("Player username not found.");
+
+            String response = "{\"message\": \"No such username\"}";
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
+
+            return new ResponseEntity(response, headers, HttpStatus.FAILED_DEPENDENCY);
+        }
+
+        // Get gameId
+        long gameId = playerController.getGameByUsername(username);
+        if (gameId == 0)
+        {
+            logger.error("User %s does not have a running game.");
+
+            String response = "{\"message\": \"No game running\"}";
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
+
+            return new ResponseEntity(response, headers, HttpStatus.FAILED_DEPENDENCY);
+        }
+
+        String gameAction = "";
+        try {
+            JSONObject request = new JSONObject(body);
+            gameAction = (String) request.get("gameAction");
+        } catch (JSONException e) {
+            logger.error(e.toString());
+        }
+
+        if (gameAction.isEmpty())
+        {
+            logger.error("GameAction not found.");
+
+            String response = "{\"message\": \"gameAction not found\"}";
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
+
+            return new ResponseEntity(response, headers, HttpStatus.BAD_REQUEST);
+        }
+
+        if (gameAction.equals("hit"))
+        {
+            return GameActionController.hit(username, handController, gameId);
+        }
+
+        if (gameAction.equals("stand"))
+        {
+            return GameActionController.stand(username, handController, gameId);
+        }
+
+        return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
