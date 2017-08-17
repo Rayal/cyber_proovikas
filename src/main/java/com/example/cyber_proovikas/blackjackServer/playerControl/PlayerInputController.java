@@ -2,6 +2,7 @@ package com.example.cyber_proovikas.blackjackServer.playerControl;
 
 import com.example.cyber_proovikas.blackjackServer.gameControl.BlackJackGameController;
 import com.example.cyber_proovikas.blackjackServer.gameControl.GameActionController;
+import com.example.cyber_proovikas.blackjackServer.gameControl.GameInfoController;
 import com.example.cyber_proovikas.blackjackServer.gameControl.HandController;
 
 import org.json.JSONException;
@@ -21,6 +22,8 @@ public class PlayerInputController
     PlayerController playerController;
     @Autowired
     HandController handController;
+    @Autowired
+    GameInfoController gameInfoController;
 
     private Logger logger = LoggerFactory.getLogger(PlayerInputController.class);
 
@@ -107,6 +110,7 @@ public class PlayerInputController
             // Game doesn't exist, creating a new one.
             gameId = BlackJackGameController.newBlackJackGame(username, handController);
             playerController.setGameByUsername(username, gameId);
+            gameInfoController.insertGame(gameId);
         }
 
         // Putting together the JSON object with our response to the user.
@@ -161,7 +165,7 @@ public class PlayerInputController
 
         // Get gameId
         long gameId = playerController.getGameByUsername(username);
-        if (gameId == 0)
+        if (gameId == -1)
         {
             logger.error("User %s does not have a running game.");
 
@@ -193,14 +197,23 @@ public class PlayerInputController
 
         if (gameAction.equals("hit"))
         {
-            return GameActionController.hit(username, handController, gameId);
+            logger.info(String.format("Player %s requests hit in game %d", username, gameId));
+            return GameActionController.hit(username, handController, gameInfoController, gameId);
         }
 
         if (gameAction.equals("stand"))
         {
-            return GameActionController.stand(username, handController, gameId);
+            logger.info(String.format("Player %s requests stand in game %d", username, gameId));
+            return GameActionController.stand(username, handController, gameInfoController, gameId);
         }
 
+        if (gameAction.equals("end"))
+        {
+            logger.info(String.format("Player %s requests end in game %d", username, gameId));
+            playerController.setGameByUsername(username, -1);
+            return GameActionController.end(username, handController, gameInfoController, gameId);
+        }
+        logger.error(String.format("Request made no sense.\n%s", body));
         return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

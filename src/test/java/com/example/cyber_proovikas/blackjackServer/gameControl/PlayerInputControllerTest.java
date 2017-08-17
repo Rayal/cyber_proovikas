@@ -173,4 +173,53 @@ public class PlayerInputControllerTest
 
         assertThat(sum >= 17);
     }
+
+    @Test
+    public void endGameTest() throws Exception
+    {
+        JSONObject request = new JSONObject(
+                String.format("{\"username\" : \"%s%s\"}",
+                        username, "endGameTest")
+        );
+
+        mockMvc.perform(post("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()));
+
+        mockMvc.perform(put("/game")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()));
+
+        request.accumulate("gameAction", "end");
+
+        String returnedContent = mockMvc.perform(get("/game/play")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JSONObject content = new JSONObject(returnedContent);
+
+        String[] hand = ((String) content.get("dealerHand"))
+                .replaceAll("\\[", "")
+                .replaceAll("]", "")
+                .split(", ");
+
+        long sum = 0;
+        for (String card : hand)
+        {
+            long nCard = Long.parseLong(card);
+            nCard = (nCard / 13) + 1;
+            sum += nCard;
+        }
+
+        assertThat(sum >= 17);
+
+        mockMvc.perform(get("/game/play")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+                .andExpect(status().isFailedDependency());
+    }
 }

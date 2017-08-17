@@ -4,7 +4,6 @@ import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -19,8 +18,6 @@ public class BlackJackGameController
     public static long newBlackJackGame(String player, HandController handController)
     {
         logger.info(String.format("Creating a new Blackjack game. ID: %d", nextId));
-
-        BlackJackGameController game = new BlackJackGameController();
 
         // Create a new deck of cards and add it to the hand repo.
         for (long i = 1; i <= 52; i++)
@@ -98,5 +95,12 @@ public class BlackJackGameController
             hit("dealer", handController, gameId);
             value = value("dealer", handController, gameId)[0];
         }
+    }
+
+    public static void end(HandController handController, long gameId)
+    {
+        logger.info(String.format("Game %d ended.", gameId));
+
+        handController.cleanGameDeck(gameId);
     }
 }
