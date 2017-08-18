@@ -4,12 +4,14 @@ import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Random;
 
 @Data
 public class BlackJackGameController
 {
+    public static BigDecimal minBet = new BigDecimal(100);
     private static long nextId = 0;
 
     static Logger logger = LoggerFactory.getLogger(BlackJackGameController.class);

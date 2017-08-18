@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -78,18 +79,29 @@ public class PlayerInputControllerTest
     @Test
     public void newGameRequestTest() throws Exception
     {
-        String request = String.format("{\"username\" : \"%s%s\"}", username, "game");
+        JSONObject request = new JSONObject(String.format(
+                "{\"username\" : \"%s%s\"}",
+                username,
+                "game"));
 
         mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(request));
+                .content(request.toString()));
+
+        request.accumulate("funds", new BigDecimal(1000));
+
+        mockMvc.perform(post("/funds")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()));
+
+        request.remove("funds");
 
         mockMvc.perform(put("/game"))
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(put("/game")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(request))
+                .content(request.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gameId").exists())
                 .andExpect(jsonPath("$.playerHand").isNotEmpty())
@@ -107,6 +119,14 @@ public class PlayerInputControllerTest
         mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request.toString()));
+
+        request.accumulate("funds", new BigDecimal(1000));
+
+        mockMvc.perform(post("/funds")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()));
+
+        request.remove("funds");
 
         MvcResult result = mockMvc.perform(put("/game")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -140,6 +160,14 @@ public class PlayerInputControllerTest
         mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request.toString()));
+
+        request.accumulate("funds", new BigDecimal(1000));
+
+        mockMvc.perform(post("/funds")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()));
+
+        request.remove("funds");
 
         mockMvc.perform(put("/game")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -186,6 +214,14 @@ public class PlayerInputControllerTest
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request.toString()));
 
+        request.accumulate("funds", new BigDecimal(1000));
+
+        mockMvc.perform(post("/funds")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()));
+
+        request.remove("funds");
+
         mockMvc.perform(put("/game")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request.toString()));
@@ -221,5 +257,23 @@ public class PlayerInputControllerTest
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request.toString()))
                 .andExpect(status().isFailedDependency());
+    }
+
+    @Test
+    public void fundsTest() throws Exception
+    {
+        JSONObject request = new JSONObject();
+        request.accumulate("username", "fundsTest");
+
+        mockMvc.perform(post("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()));
+
+        request.accumulate("funds", new BigDecimal(1000));
+
+        mockMvc.perform(post("/funds")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+                .andExpect(status().isOk());
     }
 }

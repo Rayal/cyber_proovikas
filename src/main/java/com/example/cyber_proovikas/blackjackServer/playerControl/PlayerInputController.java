@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 public class PlayerInputController
 {
@@ -27,11 +29,51 @@ public class PlayerInputController
 
     private Logger logger = LoggerFactory.getLogger(PlayerInputController.class);
 
+    private BigDecimal getFundsFromRequest(String requestBody) throws JSONException {
+        JSONObject request;
+
+        request = new JSONObject(requestBody);
+        try {
+            return new BigDecimal((int) request.get("funds"));
+        }
+        catch (Exception e){
+            return new BigDecimal(0);
+        }
+    }
+
+    private BigDecimal getBetFromRequest(String requestBody) throws JSONException {
+        JSONObject request;
+
+        request = new JSONObject(requestBody);
+        return new BigDecimal((String) request.get("bet"));
+    }
+
     private String getUsernameFromRequest(String requestBody) throws JSONException {
         JSONObject request;
 
         request = new JSONObject(requestBody);
         return (String)request.get("username");
+    }
+
+    private boolean checkForBets(String username, BigDecimal bets)
+    {
+        BigDecimal playerFunds = playerController.getFundsByUsername(username);
+        try
+        {
+            playerFunds = playerFunds.subtract(bets);
+        }
+        catch (NullPointerException e)
+        {
+            playerController.setFundsByUsername(username, new BigDecimal(0));
+            return false;
+        }
+
+        if (playerFunds.intValue() < 0)
+        {
+            return false;
+        }
+        playerController.setFundsByUsername(username, playerFunds);
+        return true;
     }
 
     @RequestMapping(value = "/login", method = RequestMethod.POST)
@@ -74,6 +116,12 @@ public class PlayerInputController
     @RequestMapping(value = "/game", method = RequestMethod.PUT)
     public ResponseEntity newGameRequest(@RequestBody String body)
     {
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(HttpHeaders.CONTENT_TYPE, "application/json");
+
+        JSONObject response = new JSONObject();
+
         //First, get the username from the request body.
         String username = "";
 
@@ -89,7 +137,14 @@ public class PlayerInputController
         if (username.isEmpty())
         {
             logger.warn("Did not get username from request body.");
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+
+            try {
+                response.accumulate("message","Username not found");
+            } catch (JSONException e) {
+                logger.error(e.toString());
+            }
+
+            return new ResponseEntity(response.toString(), httpHeaders, HttpStatus.BAD_REQUEST);
         }
 
         logger.info(String.format("Got username: %s", username));
@@ -100,21 +155,66 @@ public class PlayerInputController
         if(player == null)
         {
             logger.error("Player username not found.");
-            return new ResponseEntity(HttpStatus.FAILED_DEPENDENCY);
+
+            try {
+                response.accumulate("message","Username not found in database");
+            } catch (JSONException e) {
+                logger.error(e.toString());
+            }
+
+            return new ResponseEntity(response.toString(), httpHeaders, HttpStatus.FAILED_DEPENDENCY);
         }
 
         // Check if the username has a game still running.
         long gameId = playerController.getGameByUsername(username);
 
-        if (gameId == -1) {
-            // Game doesn't exist, creating a new one.
+        if (gameId == -1) {// Game doesn't exist, creating a new one.
+
+            // Make sure the player has enough money to bet.
+            BigDecimal bet = BlackJackGameController.minBet;
+            try {
+                bet = getBetFromRequest(body);
+            } catch (JSONException e) {
+                logger.warn(e.toString());
+            }
+
+            if (bet.subtract(BlackJackGameController.minBet).intValue() < 0)
+            {
+                try
+                {
+                    response.accumulate("warning",
+                            String.format("Bet too low. Using default of %d",
+                                    BlackJackGameController.minBet.intValue())
+                    );
+                }
+                catch (JSONException e)
+                {
+                    logger.error(e.toString());
+                }
+
+                bet = BlackJackGameController.minBet;
+            }
+
+            if (!checkForBets(username, bet))
+            {
+                logger.warn("Inadequate funds to start game");
+                try
+                {
+                    response.accumulate("message","Inadequate funds to start the game");
+                }
+                catch (JSONException e)
+                {
+                    logger.error(e.toString());
+                }
+
+                return new ResponseEntity(response.toString(), httpHeaders, HttpStatus.FAILED_DEPENDENCY);
+            }
             gameId = BlackJackGameController.newBlackJackGame(username, handController);
             playerController.setGameByUsername(username, gameId);
             gameInfoController.insertGame(gameId);
         }
 
         // Putting together the JSON object with our response to the user.
-        JSONObject response = new JSONObject();
         try {
             response.accumulate("gameId", gameId);
             response.accumulate("playerHand", handController.getCardsbyOwner(username, gameId));
@@ -123,15 +223,14 @@ public class PlayerInputController
             logger.error(e.toString());
         }
 
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(HttpHeaders.CONTENT_TYPE, "application/json");
-
         return new ResponseEntity(response.toString(), httpHeaders, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/game/play", method = RequestMethod.GET)
     public ResponseEntity gameActionRequest(@RequestBody String body)
     {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
         // Get username
         String username = "";
         try {
@@ -144,9 +243,7 @@ public class PlayerInputController
         {
             logger.warn("Did not get username from request body.");
 
-            String response = "{\"message\": \"username not found\"}";
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
+            String response = "{\"message\": \"Username not found\"}";
 
             return new ResponseEntity(response, headers, HttpStatus.BAD_REQUEST);
         }
@@ -157,8 +254,6 @@ public class PlayerInputController
             logger.error("Player username not found.");
 
             String response = "{\"message\": \"No such username\"}";
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
 
             return new ResponseEntity(response, headers, HttpStatus.FAILED_DEPENDENCY);
         }
@@ -170,8 +265,6 @@ public class PlayerInputController
             logger.error("User %s does not have a running game.");
 
             String response = "{\"message\": \"No game running\"}";
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
 
             return new ResponseEntity(response, headers, HttpStatus.FAILED_DEPENDENCY);
         }
@@ -189,8 +282,6 @@ public class PlayerInputController
             logger.error("GameAction not found.");
 
             String response = "{\"message\": \"gameAction not found\"}";
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
 
             return new ResponseEntity(response, headers, HttpStatus.BAD_REQUEST);
         }
@@ -215,5 +306,55 @@ public class PlayerInputController
         }
         logger.error(String.format("Request made no sense.\n%s", body));
         return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @RequestMapping(value = "/funds", method = RequestMethod.POST)
+    public ResponseEntity addFundsRequest(@RequestBody String body)
+    {
+        logger.info("New funds requested");
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(HttpHeaders.CONTENT_TYPE, "application/json");
+
+        String username = "";
+        try {
+            username = getUsernameFromRequest(body);
+        } catch (JSONException e) {
+            logger.error(e.toString());
+        }
+
+        if (username.isEmpty())
+        {
+            logger.error("Username not found");
+
+            String response = "{\"message\": \"Username not found.\"}";
+            return new ResponseEntity(response, httpHeaders, HttpStatus.BAD_REQUEST);
+        }
+
+        BigDecimal funds = new BigDecimal(0);
+        try {
+            funds = getFundsFromRequest(body);
+        } catch (JSONException e) {
+            logger.error(e.toString());
+        }
+
+        if (funds.equals(0))
+        {
+            logger.error("Funds not found");
+
+            String response = "{\"message\": \"Funds not found.\"}";
+            return new ResponseEntity(response, httpHeaders, HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            funds.add(playerController.getFundsByUsername(username));
+        }
+        catch (NullPointerException e)
+        {
+            logger.warn(String.format("%s has no funds yet",username));
+        }
+        playerController.setFundsByUsername(username, funds);
+
+        return new ResponseEntity(HttpStatus.OK);
     }
 }
