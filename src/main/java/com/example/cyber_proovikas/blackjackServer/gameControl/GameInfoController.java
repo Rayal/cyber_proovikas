@@ -7,13 +7,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import javax.transaction.Transactional;
+import java.math.BigDecimal;
 
 @Repository
 public interface GameInfoController extends JpaRepository <Game, Long> {
     @Modifying
     @Transactional
-    @Query(value = "insert into Game (id, stand) values (:gameId, FALSE)", nativeQuery = true)
-    public void insertGame(@Param("gameId") long gameId);
+    @Query(value = "insert into Game (id, stand, bet) values (:gameId, FALSE, :bet)", nativeQuery = true)
+    public void insertGame(@Param("gameId") long gameId, @Param("bet") BigDecimal bet);
 
     @Modifying
     @Transactional
@@ -28,4 +29,6 @@ public interface GameInfoController extends JpaRepository <Game, Long> {
     @Query(value = "delete from Game g where g.id = :gameId", nativeQuery = true)
     public void deleteGameInfoById(@Param("gameId") long gameId);
 
+    @Query("select g.bet from Game g where g.id = :gameId")
+    public BigDecimal getBetById(@Param("gameId") long gameId);
 }

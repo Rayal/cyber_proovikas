@@ -211,7 +211,7 @@ public class PlayerInputController
             }
             gameId = BlackJackGameController.newBlackJackGame(username, handController);
             playerController.setGameByUsername(username, gameId);
-            gameInfoController.insertGame(gameId);
+            gameInfoController.insertGame(gameId, bet);
         }
 
         // Putting together the JSON object with our response to the user.
@@ -302,7 +302,7 @@ public class PlayerInputController
         {
             logger.info(String.format("Player %s requests end in game %d", username, gameId));
             playerController.setGameByUsername(username, -1);
-            return GameActionController.end(username, handController, gameInfoController, gameId);
+            return GameActionController.end(username, handController, gameInfoController, playerController, gameId);
         }
         logger.error(String.format("Request made no sense.\n%s", body));
         return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);

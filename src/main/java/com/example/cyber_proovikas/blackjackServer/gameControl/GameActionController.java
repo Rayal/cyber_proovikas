@@ -1,5 +1,6 @@
 package com.example.cyber_proovikas.blackjackServer.gameControl;
 
+import com.example.cyber_proovikas.blackjackServer.playerControl.PlayerController;
 import com.sun.imageio.plugins.gif.GIFImageMetadata;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -9,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import java.math.BigDecimal;
 
 public class GameActionController {
     static Logger logger = LoggerFactory.getLogger(GameActionController.class);
@@ -108,13 +111,58 @@ public class GameActionController {
         return new ResponseEntity(response.toString(), headers, status);
     }
 
-    public static ResponseEntity end(String username, HandController handController, GameInfoController gameInfoController, long gameId) {
-        ResponseEntity response = stand(username, handController, gameInfoController, gameId);
+    public static ResponseEntity end(String username,
+                                     HandController handController,
+                                     GameInfoController gameInfoController,
+                                     PlayerController playerController,
+                                     long gameId) {
+        logger.info(String.format("Game %d ending", gameId));
+
+        stand(username, handController, gameInfoController, gameId);
+
+        JSONObject response = new JSONObject();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_TYPE, "application/json");
+        HttpStatus status = HttpStatus.OK;
+
+        long playerValue = 0;
+        for (long value : BlackJackGameController.value(username, handController, gameId))
+        {
+            if (value <= 21 && value > playerValue)
+                playerValue = value;
+        }
+
+        long dealerValue = 0;
+        for (long value : BlackJackGameController.value("dealer", handController, gameId))
+        {
+            if (value <= 21 && value > dealerValue)
+                dealerValue = value;
+        }
+
+        if (playerValue > dealerValue)
+        {
+            BigDecimal playerFunds = (playerController.getFundsByUsername(username));
+            playerFunds.add(
+                    gameInfoController.getBetById(gameId)
+                            .multiply(new BigDecimal(2))
+            );
+            playerController.setFundsByUsername(username, playerFunds);
+        }
+
+        try
+        {
+            response.accumulate("dealerHand", handController.getCardsbyOwner("dealer", gameId));
+            response.accumulate("playerHand", handController.getCardsbyOwner(username, gameId));
+        }
+        catch (JSONException e)
+        {
+            logger.error(e.toString());
+        }
 
         gameInfoController.deleteGameInfoById(gameId);
 
         BlackJackGameController.end(handController, gameId);
 
-        return response;
+        return new ResponseEntity(response.toString(), headers, status);
     }
 }
