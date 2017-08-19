@@ -75,6 +75,8 @@ public class GameActionController {
         try
         {
             response.accumulate("playerHand", handController.getCardsbyOwner(username, gameId));
+            if (!response.has("dealerHand"))
+                response.accumulate("dealerHand", handController.getCardsbyOwner("dealer", gameId).get(0).toString());// Not the best... it gives the card with the smallest value, always... but for our purposes.....
         }
         catch (JSONException e)
         {
@@ -139,13 +141,15 @@ public class GameActionController {
                 dealerValue = value;
         }
 
+        logger.info(String.format("Player: %s, Dealer: %s", playerValue, dealerValue));
         if (playerValue > dealerValue)
         {
+            logger.info("Player won.");
             BigDecimal playerFunds = (playerController.getFundsByUsername(username));
-            playerFunds.add(
-                    gameInfoController.getBetById(gameId)
-                            .multiply(new BigDecimal(2))
-            );
+            BigDecimal bet = gameInfoController.getBetById(gameId);
+            logger.info(String.format("Player funds: %d Bet: %d", playerFunds.intValue(), bet.intValue()));
+            playerFunds = playerFunds.add(new BigDecimal(bet.intValue() * 2));
+            logger.info(String.format("Player funds: %d", playerFunds.intValue()));
             playerController.setFundsByUsername(username, playerFunds);
         }
 

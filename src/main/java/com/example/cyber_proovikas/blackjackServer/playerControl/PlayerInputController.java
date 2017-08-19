@@ -76,6 +76,14 @@ public class PlayerInputController
         return true;
     }
 
+    @RequestMapping(value = "/ping", method = RequestMethod.POST)
+    public ResponseEntity pingRequest(@RequestBody String body)
+    {
+        logger.debug(body);
+        System.out.println(body);
+        return new ResponseEntity(body, HttpStatus.OK);
+    }
+
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity loginRequest(@RequestBody String body)
     {
@@ -226,7 +234,7 @@ public class PlayerInputController
         return new ResponseEntity(response.toString(), httpHeaders, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/game/play", method = RequestMethod.GET)
+    @RequestMapping(value = "/game/play", method = RequestMethod.POST)
     public ResponseEntity gameActionRequest(@RequestBody String body)
     {
         HttpHeaders headers = new HttpHeaders();
