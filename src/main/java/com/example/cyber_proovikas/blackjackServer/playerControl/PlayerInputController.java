@@ -41,6 +41,19 @@ public class PlayerInputController
         }
     }
 
+    private BigDecimal getWithdrawFromRequest(String requestBody) throws JSONException
+    {
+        JSONObject request;
+
+        request = new JSONObject(requestBody);
+        try {
+            return new BigDecimal((int) request.get("withdraw"));
+        }
+        catch (Exception e){
+            return new BigDecimal(0);
+        }
+    }
+
     private BigDecimal getBetFromRequest(String requestBody) throws JSONException {
         JSONObject request;
 
@@ -321,7 +334,7 @@ public class PlayerInputController
     @RequestMapping(value = "/funds", method = RequestMethod.POST)
     public ResponseEntity addFundsRequest(@RequestBody String body)
     {
-        logger.info("New funds requested");
+        logger.info("Transaction requested");
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add(HttpHeaders.CONTENT_TYPE, "application/json");
@@ -341,30 +354,69 @@ public class PlayerInputController
             return new ResponseEntity(response, httpHeaders, HttpStatus.BAD_REQUEST);
         }
 
+        // Assume that the player wants to deposit.
+
+        boolean deposit = true;
+
         BigDecimal funds = new BigDecimal(0);
         try {
             funds = getFundsFromRequest(body);
         } catch (JSONException e) {
-            logger.error(e.toString());
+            logger.warn(e.toString());
         }
 
-        if (funds.equals(0))
-        {
-            logger.error("Funds not found");
+        // If this was not the case, check to see if they wanted to withdraw.
+        if (funds.intValue() == 0) {
+            try {
+                funds = getWithdrawFromRequest(body);
+                deposit = false;
+            } catch (JSONException e) {
+                logger.warn(e.toString());
+            }
+        }
 
-            String response = "{\"message\": \"Funds not found.\"}";
+        if (funds.intValue() == 0)
+        {
+            logger.error("Transaction not found");
+
+            String response = "{\"message\": \"Transaction not found.\"}";
             return new ResponseEntity(response, httpHeaders, HttpStatus.BAD_REQUEST);
         }
 
-        try {
-            funds.add(playerController.getFundsByUsername(username));
+        BigDecimal playerFunds = playerController.getFundsByUsername(username);
+        /*try {
+            playerFunds
         }
         catch (NullPointerException e)
         {
-            logger.warn(String.format("%s has no funds yet",username));
+            logger.warn(String.format("%s has no funds yet", username));
+            playerFunds = new BigDecimal(0);
+        }*/
+        if (playerFunds == null)
+        {
+            logger.warn(String.format("%s has no funds yet", username));
+            playerFunds = new BigDecimal(0);
         }
-        playerController.setFundsByUsername(username, funds);
 
+        if (deposit) {
+            funds = funds.add(playerFunds);
+            playerController.setFundsByUsername(username, funds);
+        }
+        else
+        {
+            if (playerFunds.intValue() >= funds.intValue())
+            {
+                playerFunds = playerFunds.subtract(funds);
+                playerController.setFundsByUsername(username, playerFunds);
+            }
+            else
+            {
+                logger.warn("Player attempted to withdraw more than they have.");
+
+                String response = "{\"message\": \"Inadequate funds.\"}";
+                return new ResponseEntity(response, httpHeaders, HttpStatus.FORBIDDEN);
+            }
+        }
         return new ResponseEntity(HttpStatus.OK);
     }
 }
