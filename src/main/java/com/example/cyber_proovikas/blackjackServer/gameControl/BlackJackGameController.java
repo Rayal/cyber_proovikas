@@ -67,7 +67,7 @@ public class BlackJackGameController
         for (long card : handController.getCardsbyOwner(player, gameId))
         {
             card = (card % 13) + 1;
-            if(card > 13)
+            if(card > 10)
             {
                 value[1] += 10;
                 value[0] += 10;

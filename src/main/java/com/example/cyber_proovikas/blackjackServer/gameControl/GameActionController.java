@@ -147,9 +147,7 @@ public class GameActionController {
             logger.info("Player won.");
             BigDecimal playerFunds = (playerController.getFundsByUsername(username));
             BigDecimal bet = gameInfoController.getBetById(gameId);
-            logger.info(String.format("Player funds: %d Bet: %d", playerFunds.intValue(), bet.intValue()));
             playerFunds = playerFunds.add(new BigDecimal(bet.intValue() * 2));
-            logger.info(String.format("Player funds: %d", playerFunds.intValue()));
             playerController.setFundsByUsername(username, playerFunds);
         }
 
