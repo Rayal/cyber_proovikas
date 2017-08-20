@@ -45,7 +45,7 @@ public class PlayerInputController
         JSONObject request;
 
         request = new JSONObject(requestBody);
-        return new BigDecimal((String) request.get("bet"));
+        return new BigDecimal(String.valueOf(request.get("bet")));
     }
 
     private String getUsernameFromRequest(String requestBody) throws JSONException {
@@ -55,6 +55,7 @@ public class PlayerInputController
         return (String)request.get("username");
     }
 
+    // Check if the player has enough funds to play the game.
     private boolean checkForBets(String username, BigDecimal bets)
     {
         BigDecimal playerFunds = playerController.getFundsByUsername(username);
@@ -76,6 +77,7 @@ public class PlayerInputController
         return true;
     }
 
+    // Mostly unused. For debugging purposes.
     @RequestMapping(value = "/ping", method = RequestMethod.POST)
     public ResponseEntity pingRequest(@RequestBody String body)
     {

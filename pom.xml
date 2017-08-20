@@ -6,7 +6,7 @@
 	<groupId>com.example</groupId>
 	<artifactId>cyber_proovikas</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>jar</packaging>
+	<packaging>war</packaging>
 
 	<name>cyber_proovikas</name>
 	<description>Minu lahendus Cybernetica Blackjack prooviülesandele.</description>
